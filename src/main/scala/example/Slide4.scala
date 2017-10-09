@@ -4,6 +4,7 @@ object Forth extends RunForth with App {
   run()
 }
 
+// Ergonomics try 1
 trait RunForth {
   trait Lens[A, B] { self =>
     def get(a: A): B

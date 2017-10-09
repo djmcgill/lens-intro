@@ -1,21 +1,18 @@
 package example
 
-object Third extends RunThird with App {
+object Fifth extends RunFifth with App {
   run()
 }
 
-// Basic lens
-trait RunThird {
+// Ergonomics try 2
+trait RunFifth {
   trait Lens[A, B] { self =>
     def get(a: A): B
-
+    def set(a: A, b: B): A = modify(a, _ => b)
     def modify(a: A, b2b: B => B): A = {
-      val oldB = get(a)
-      val newB = b2b(oldB)
+      val newB = b2b(get(a))
       set(a, newB)
     }
-
-    def set(a: A, b: B): A = modify(a, _ => b)
 
     def join[C](subLens: Lens[B, C]): Lens[A, C] = new Lens[A, C] {
       override def get(a: A): C = {
@@ -30,8 +27,17 @@ trait RunThird {
     }
   }
 
+  case class ObjWithLens[A, B](a: A, lens: Lens[A, B]) {
+    def get(): B = lens.get(a)
+    def set(b: B): A = lens.set(a, b)
+    def modify(b2b: B => B): A = lens.modify(a, b2b)
+  }
 
-  case class Address(houseNumber: Int, street: String, town: String, postcode: String)
+  trait WithLens[A] { self: A =>
+    def lens[B](lens: Lens[A, B]): ObjWithLens[A, B] = ObjWithLens(self, lens)
+  }
+
+  case class Address(houseNumber: Int, street: String, town: String, postcode: String) extends WithLens[Address]
   object Address {
     val houseNumberLens: Lens[Address, Int] = new Lens[Address, Int] {
       override def get(address: Address): Int = address.houseNumber
@@ -51,12 +57,12 @@ trait RunThird {
       override def set(person: Person, newAddress: Address): Person = person.copy(address = newAddress)
     }
   }
-  case class Person(name: String, address: Address) {
+  case class Person(name: String, address: Address) extends WithLens[Person] {
     import Person._
     import Address._
 
-    def incrementHouseNumber(): Person = addressLens.join(houseNumberLens).modify(this, houseNumber => houseNumber + 1)
-    def concatToTown(city: String): Person = addressLens.join(townLens).modify(this, town => town.concat(city))
+    def incrementHouseNumber() = this.lens(addressLens.join(houseNumberLens)).modify(_ + 1)
+    def concatToTown(city: String) = this.lens(addressLens.join(townLens)).modify(_.concat(city))
   }
 
 
@@ -70,17 +76,18 @@ trait RunThird {
     )
   )
 
-  def run(): Unit = {
-    import Address._
+  def run() = {
     import Person._
+    import Address._
 
     println(egPerson)
     println(egPerson.incrementHouseNumber())
     println(egPerson.concatToTown(", LONDON"))
 
     println(
-      addressLens.join(townLens).set(egPerson, "Islington")
+      egPerson.lens(addressLens.join(townLens)).set("Islington")
     )
+    val egPersonWithTown: String => Person = egPerson.lens(addressLens.join(townLens)).set
   }
 
 }

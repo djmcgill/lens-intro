@@ -4,6 +4,7 @@ object Second extends RunSecond with App {
   run()
 }
 
+// Explicit getters and setters
 trait RunSecond {
   case class Address(houseNumber: Int, street: String, town: String, postcode: String) {
     def getHouseNumber: Int = houseNumber

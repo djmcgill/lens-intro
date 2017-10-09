@@ -4,6 +4,7 @@ object First extends RunFirst with App {
   run()
 }
 
+// Basic case-class implementation
 trait RunFirst {
   case class Address(houseNumber: Int, street: String, town: String, postcode: String)
 
